@@ -6,12 +6,14 @@ use crate::{
     data::SvmNodes,
     error::Error,
     init::{KernelInit, ModelInit, SvmInit},
-    state::{SvmState, Trained, Untrained},
+    state::{Trained, Untrained},
 };
+use num_derive::FromPrimitive;
 use std::{
     collections::HashMap,
     convert::{TryFrom, TryInto},
-    ffi::CString,
+    ffi::{CStr, CString},
+    num::NonZeroUsize,
     os::raw::c_int,
     ptr::NonNull,
     str::FromStr,
@@ -23,7 +25,11 @@ pub struct Svm<State> {
 }
 
 impl Svm<Untrained> {
-    pub fn fit<X, Y>(self, x: X, y: Y) -> Result<Svm<Trained>, Error>
+    pub fn kind(&self) -> SvmKind {
+        num::FromPrimitive::from_usize(self.state.params.svm_type as usize).unwrap()
+    }
+
+    pub fn fit<X, Y>(&self, x: X, y: Y) -> Result<Svm<Trained>, Error>
     where
         X: TryInto<SvmNodes, Error = Error>,
         Y: AsRef<[f64]>,
@@ -59,29 +65,42 @@ impl Svm<Untrained> {
         let y_slice = y.as_ref();
         let y_ptr = y_slice.as_ptr() as *mut f64;
 
-        // n_features
-        let n_features: c_int = x_nodes
-            .n_features
-            .try_into()
-            .map_err(|_| Error::InvalidData {
-                reason: format!("the number of features is too large"),
-            })?;
+        if x_nodes.end_indexes.len() != y_slice.len() {
+            return Err(Error::InvalidData {
+                reason: "the size of data and label does not match".into(),
+            });
+        }
 
         // costruct problem
         let problem = libsvm_sys::svm_problem {
-            l: n_features,
+            l: x_nodes.end_indexes.len() as c_int,
             x: x_ptr,
             y: y_ptr,
         };
 
         // compute gamma if necessary
-        let gamma = gamma_opt.unwrap_or_else(|| (n_features as f64).recip());
+        let gamma = gamma_opt.unwrap_or_else(|| (x_nodes.n_features as f64).recip());
 
         // update raw params
         // we store pointers late to avoid move after saving pointers
         params.gamma = gamma;
         params.weight_label = weight_labels.as_ptr() as *mut _;
         params.weight = weights.as_ptr() as *mut _;
+
+        unsafe {
+            let ptr = libsvm_sys::svm_check_parameter(&problem, &params);
+
+            if ptr != std::ptr::null() {
+                let err_msg = CStr::from_ptr(ptr)
+                    .to_str()
+                    .map_err(|err| Error::InternalError {
+                        reason: format!("failed to decode error mesage: {:?}", err),
+                    })?;
+                return Err(Error::InvalidHyperparameter {
+                    reason: format!("svm_check_parameter() failed: {}", err_msg),
+                });
+            }
+        }
 
         // train model
         let model_ptr = unsafe {
@@ -93,7 +112,10 @@ impl Svm<Untrained> {
         };
 
         Ok(Svm {
-            state: Trained { model_ptr },
+            state: Trained {
+                model_ptr,
+                nodes_opt: Some(x_nodes),
+            },
         })
     }
 }
@@ -113,9 +135,22 @@ impl FromStr for Svm<Trained> {
         };
 
         Ok(Svm {
-            state: Trained { model_ptr },
+            state: Trained {
+                model_ptr,
+                nodes_opt: None,
+            },
         })
     }
+}
+
+/// The model type.
+#[derive(Clone, Copy, Debug, FromPrimitive)]
+pub enum SvmKind {
+    CSvc = libsvm_sys::C_SVC as isize,
+    NuSvc = libsvm_sys::NU_SVC as isize,
+    NuSvr = libsvm_sys::NU_SVR as isize,
+    OneClass = libsvm_sys::ONE_CLASS as isize,
+    EpsilonSvr = libsvm_sys::EPSILON_SVR as isize,
 }
 
 #[derive(Debug, Clone)]

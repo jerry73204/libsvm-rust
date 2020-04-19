@@ -1,7 +1,9 @@
+use crate::data::SvmNodes;
 use std::ptr::NonNull;
 
 pub trait SvmState {}
 
+#[derive(Debug)]
 pub struct Untrained {
     pub(crate) gamma_opt: Option<f64>,
     pub(crate) params: libsvm_sys::svm_parameter,
@@ -11,8 +13,11 @@ pub struct Untrained {
 
 impl SvmState for Untrained {}
 
+#[derive(Debug)]
 pub struct Trained {
     pub(crate) model_ptr: NonNull<libsvm_sys::svm_model>,
+    // libsvm_sys::svm_model refers to this struct internally
+    pub(crate) nodes_opt: Option<SvmNodes>,
 }
 
 impl SvmState for Trained {}
