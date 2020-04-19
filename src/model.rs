@@ -118,6 +118,164 @@ impl Svm<Untrained> {
             },
         })
     }
+
+    /// Runs cross validation on given data.
+    pub fn cross_validate<X, Y>(&self, x: X, y: Y, n_folds: NonZeroUsize) -> Result<Vec<f64>, Error>
+    where
+        X: TryInto<SvmNodes, Error = Error>,
+        Y: AsRef<[f64]>,
+    {
+        let Svm {
+            state:
+                Untrained {
+                    gamma_opt,
+                    mut params,
+                    weight_labels,
+                    weights,
+                },
+        } = self;
+
+        // transoform x
+        let x_nodes = x.try_into()?;
+        let x_slice = x_nodes
+            .end_indexes
+            .iter()
+            .cloned()
+            .scan(0, |from, to| {
+                let prev_from = *from;
+                *from = to;
+                Some((prev_from, to))
+            })
+            .map(|(from, to)| {
+                x_nodes.nodes.get(from..to).unwrap().as_ptr() as *mut libsvm_sys::svm_node
+            })
+            .collect::<Vec<_>>();
+        let x_ptr = x_slice.as_ptr() as *mut *mut libsvm_sys::svm_node;
+
+        // transoform y
+        let y_slice = y.as_ref();
+        let y_ptr = y_slice.as_ptr() as *mut f64;
+
+        let n_records = {
+            if x_nodes.end_indexes.len() != y_slice.len() {
+                return Err(Error::InvalidData {
+                    reason: "the size of data and label does not match".into(),
+                });
+            }
+            y_slice.len()
+        };
+
+        // costruct problem
+        let problem = libsvm_sys::svm_problem {
+            l: x_nodes.end_indexes.len() as c_int,
+            x: x_ptr,
+            y: y_ptr,
+        };
+
+        // compute gamma if necessary
+        let gamma = gamma_opt.unwrap_or_else(|| (x_nodes.n_features as f64).recip());
+
+        // update raw params
+        // we store pointers late to avoid move after saving pointers
+        params.gamma = gamma;
+        params.weight_label = weight_labels.as_ptr() as *mut _;
+        params.weight = weights.as_ptr() as *mut _;
+
+        // run cross validation
+        let target = unsafe {
+            let mut target = std::iter::repeat(0.0).take(n_records).collect::<Vec<_>>();
+            libsvm_sys::svm_cross_validation(
+                &problem,
+                &params,
+                n_folds.get() as c_int,
+                target.as_mut_ptr(),
+            );
+            target
+        };
+
+        Ok(target)
+    }
+}
+
+impl Svm<Trained> {
+    /// Gets the type of the model.
+    pub fn kind(&self) -> SvmKind {
+        num::FromPrimitive::from_usize(unsafe {
+            libsvm_sys::svm_get_svm_type(self.state.model_ptr.as_ptr()) as usize
+        })
+        .unwrap()
+    }
+
+    /// Gets the number of output classes.
+    pub fn nr_classes(&self) -> usize {
+        unsafe { libsvm_sys::svm_get_nr_class(self.state.model_ptr.as_ptr()) as usize }
+    }
+
+    /// Gets the label indexes.
+    pub fn labels(&self) -> Vec<usize> {
+        unsafe {
+            let mut labels = std::iter::repeat(0)
+                .take(self.nr_classes())
+                .collect::<Vec<_>>();
+            libsvm_sys::svm_get_labels(self.state.model_ptr.as_ptr(), labels.as_mut_ptr());
+            labels
+                .into_iter()
+                .map(|label| label as usize)
+                .collect::<Vec<_>>()
+        }
+    }
+
+    /// Gets the support vector indexes in training data.
+    pub fn get_sv_indexes(&self) -> Vec<usize> {
+        let n_sv = unsafe { libsvm_sys::svm_get_nr_sv(self.state.model_ptr.as_ptr()) as usize };
+        let indexes = unsafe {
+            let mut indexes = std::iter::repeat(0).take(n_sv).collect::<Vec<_>>();
+            libsvm_sys::svm_get_sv_indices(self.state.model_ptr.as_ptr(), indexes.as_mut_ptr());
+            indexes
+                .into_iter()
+                .map(|index| index as usize)
+                .collect::<Vec<_>>()
+        };
+        indexes
+    }
+
+    /// Predicts the output for given data.
+    pub fn predict<X>(&self, x: X) -> Result<Vec<f64>, Error>
+    where
+        X: TryInto<SvmNodes, Error = Error>,
+    {
+        let x_nodes = x.try_into()?;
+        let n_features = self.nr_classes();
+        if x_nodes.n_features > n_features {
+            return Err(Error::InvalidData {
+                reason: format!(
+                    "too many features in input data, expect {} features but get {}",
+                    n_features, x_nodes.n_features
+                ),
+            });
+        }
+
+        let predictions = {
+            x_nodes
+                .end_indexes
+                .iter()
+                .cloned()
+                .scan(0, |from, to| {
+                    let prev_from = *from;
+                    *from = to;
+                    Some((prev_from, to))
+                })
+                .map(|(from, to)| {
+                    x_nodes.nodes.get(from..to).unwrap().as_ptr() as *mut libsvm_sys::svm_node
+                })
+                .map(|node_ptr| unsafe {
+                    libsvm_sys::svm_predict(self.state.model_ptr.as_ptr(), node_ptr)
+                })
+                .collect::<Vec<_>>()
+        };
+
+        Ok(predictions)
+    }
 }
 
 impl FromStr for Svm<Trained> {
