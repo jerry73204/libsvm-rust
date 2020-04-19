@@ -15,8 +15,8 @@ The following extra features add support for nalgebra and ndarray types.
 The methods in this crate will accept matrix or multi-dimensional array types,
 and convert them internally.
 
- *with-nalgebra*
- *with-ndarray*
+- **with-nalgebra**: Add nalgebra support
+- **with-ndarray**: Add ndarray support
 
 For example, if you would like to enable nalgebra support, add the line in your
 `Cargo.toml`.
