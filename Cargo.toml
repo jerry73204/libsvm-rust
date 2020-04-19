@@ -2,8 +2,13 @@
 name = "libsvm"
 version = "0.1.0"
 authors = ["jerry73204 <jerry73204@gmail.com>"]
+description = "High level Rust bindings for libsvm"
 edition = "2018"
 license-file = "LICENSE"
+repository = "https://github.com/jerry73204/libsvm-rust"
+documentation = "https://docs.rs/libsvm/"
+readme = "README.md"
+categories = ["api-bindings", "science"]
 
 [dependencies]
 libsvm-sys = "^3.24.0"
