@@ -1,8 +1,12 @@
+//! The marker types to mark the state of [Svm](crate::model::Svm) type.
+
 use crate::data::SvmNodes;
 use std::ptr::NonNull;
 
+/// Used for the trait bound of state types.
 pub trait SvmState {}
 
+/// The untrained state marker.
 #[derive(Debug)]
 pub struct Untrained {
     pub(crate) gamma_opt: Option<f64>,
@@ -13,6 +17,7 @@ pub struct Untrained {
 
 impl SvmState for Untrained {}
 
+/// The trained state marker.
 #[derive(Debug)]
 pub struct Trained {
     pub(crate) model_ptr: NonNull<libsvm_sys::svm_model>,

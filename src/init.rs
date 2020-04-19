@@ -1,3 +1,5 @@
+//! The hyperparameter initializers.
+
 use crate::{
     consts::{DEFAULT_COEF0, DEFAULT_COST, DEFAULT_DEGREE, DEFAULT_MODEL_EPSILON, DEFAULT_NU},
     error::Error,
@@ -9,6 +11,7 @@ use std::{
     convert::{TryFrom, TryInto},
 };
 
+/// The model type initializer.
 #[derive(Clone, Debug)]
 pub enum ModelInit {
     CSvc { cost: Option<f64> },
@@ -18,7 +21,7 @@ pub enum ModelInit {
     EpsilonSvr { epsilon: Option<f64> },
 }
 
-/// Type of the kernel used by the SVM.
+/// The kernel initializer.
 #[derive(Clone, Debug)]
 pub enum KernelInit {
     Linear,
@@ -37,7 +40,7 @@ pub enum KernelInit {
     // Precomputed,
 }
 
-/// Safe representation of `LibsvmParameter`.
+/// The SVM model initializer.
 #[derive(Debug, Clone)]
 pub struct SvmInit {
     pub model: Option<ModelInit>,
@@ -64,6 +67,7 @@ impl Default for SvmInit {
 }
 
 impl SvmInit {
+    /// Builds SVM model from the initializer.
     pub fn build(&self) -> Result<Svm<Untrained>, Error> {
         let SvmParams {
             model,

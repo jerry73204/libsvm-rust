@@ -1,3 +1,5 @@
+//! Data types unsed internally by libsvm.
+
 use crate::error::Error;
 use std::{
     array::FixedSizeArray,
@@ -5,6 +7,8 @@ use std::{
     os::raw::c_int,
 };
 
+/// Sparse storage of two dimensional array
+#[derive(Debug, Clone)]
 pub struct SvmNodes {
     pub(crate) n_features: usize,
     pub(crate) nodes: Vec<libsvm_sys::svm_node>,

@@ -1,5 +1,8 @@
+//! Error types.
+
 use failure::Fail;
 
+/// The error type used across this crate.
 #[derive(Debug, Fail)]
 pub enum Error {
     #[fail(display = "invalid hyperparameter: {}", reason)]

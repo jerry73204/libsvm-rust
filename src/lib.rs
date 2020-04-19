@@ -1,3 +1,5 @@
+//! High-level and rusty bindings for libsvm.
+
 #![feature(const_generics)]
 #![feature(fixed_size_array)]
 

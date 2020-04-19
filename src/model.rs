@@ -1,3 +1,5 @@
+//! SVM model types.
+
 use crate::{
     consts::{
         DEFAULT_CACHE_SIZE, DEFAULT_COEF0, DEFAULT_COST, DEFAULT_DEGREE, DEFAULT_MODEL_EPSILON,
@@ -19,7 +21,8 @@ use std::{
     str::FromStr,
 };
 
-#[derive(Debug, Clone)]
+/// The SVM model.
+#[derive(Debug)]
 pub struct Svm<State> {
     pub(crate) state: State,
 }
@@ -29,6 +32,7 @@ impl Svm<Untrained> {
         num::FromPrimitive::from_usize(self.state.params.svm_type as usize).unwrap()
     }
 
+    /// Trains the model on given dataset.
     pub fn fit<X, Y>(&self, x: X, y: Y) -> Result<Svm<Trained>, Error>
     where
         X: TryInto<SvmNodes, Error = Error>,
