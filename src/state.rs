@@ -1,8 +1,6 @@
 use std::ptr::NonNull;
 
-pub trait SvmState {
-    // fn gamma(&self) -> Option<f64>;
-}
+pub trait SvmState {}
 
 pub struct Untrained {
     pub(crate) gamma_opt: Option<f64>,
@@ -11,21 +9,13 @@ pub struct Untrained {
     pub(crate) weights: Vec<f64>,
 }
 
-impl SvmState for Untrained {
-    // fn gamma(&self) -> Option<f64> {
-    //     self.gamma_opt.clone()
-    // }
-}
+impl SvmState for Untrained {}
 
 pub struct Trained {
     pub(crate) model_ptr: NonNull<libsvm_sys::svm_model>,
 }
 
-impl SvmState for Trained {
-    // fn gamma(&self) -> Option<f64> {
-    //     Some(self.gamma)
-    // }
-}
+impl SvmState for Trained {}
 
 impl Drop for Trained {
     fn drop(&mut self) {
