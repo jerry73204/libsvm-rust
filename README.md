@@ -29,3 +29,14 @@ libsvm = { version = "^0.1.0", features = ["with-nalgebra"] }
 
 The crate is licensed under BSD-3-clause. You can see the [license file](LICENSE)
 included in the repository.
+
+The crate links the work from Chih-Chung Chang and Chih-Jen Lin. The upstream libsvm
+license can be found in `licenses` directory. Here is the citation text to respect
+their contribution.
+
+```
+Chih-Chung Chang and Chih-Jen Lin, LIBSVM : a library for support
+vector machines. ACM Transactions on Intelligent Systems and
+Technology, 2:27:1--27:27, 2011. Software available at
+http://www.csie.ntu.edu.tw/~cjlin/libsvm
+```
