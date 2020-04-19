@@ -3,6 +3,8 @@ name = "libsvm"
 version = "0.1.0"
 authors = ["jerry73204 <jerry73204@gmail.com>"]
 edition = "2018"
+license = "BSD-3-Clause"
+license-file = "LICENSE"
 
 [dependencies]
 libsvm-sys = "^3.24.0"
