@@ -222,7 +222,7 @@ impl Svm<Trained> {
     }
 
     /// Gets the label indexes.
-    pub fn labels(&self) -> Vec<usize> {
+    pub fn labels(&self) -> Vec<isize> {
         unsafe {
             let mut labels = std::iter::repeat(0)
                 .take(self.nr_classes())
@@ -230,7 +230,7 @@ impl Svm<Trained> {
             libsvm_sys::svm_get_labels(self.state.model_ptr.as_ptr(), labels.as_mut_ptr());
             labels
                 .into_iter()
-                .map(|label| label as usize)
+                .map(|label| label as isize)
                 .collect::<Vec<_>>()
         }
     }
@@ -385,7 +385,7 @@ pub(crate) struct SvmParams {
     pub probability_estimates: bool,
     pub shrinking: bool,
     pub termination_eps: f64,
-    pub label_weights: HashMap<usize, f64>,
+    pub label_weights: HashMap<isize, f64>,
 }
 
 impl TryFrom<&SvmInit> for SvmParams {

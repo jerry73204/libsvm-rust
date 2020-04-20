@@ -49,7 +49,7 @@ pub struct SvmInit {
     pub probability_estimates: Option<bool>,
     pub shrinking: Option<bool>,
     pub termination_eps: Option<f64>,
-    pub label_weights: Option<HashMap<usize, f64>>,
+    pub label_weights: Option<HashMap<isize, f64>>,
 }
 
 impl Default for SvmInit {
