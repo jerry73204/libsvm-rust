@@ -38,6 +38,9 @@ impl Svm<Untrained> {
         X: TryInto<SvmNodes, Error = Error>,
         Y: AsRef<[f64]>,
     {
+        // disable message from libsvm
+        crate::disable_print_in_libsvm();
+
         let Svm {
             state:
                 Untrained {
@@ -129,6 +132,9 @@ impl Svm<Untrained> {
         X: TryInto<SvmNodes, Error = Error>,
         Y: AsRef<[f64]>,
     {
+        // disable message from libsvm
+        crate::disable_print_in_libsvm();
+
         let Svm {
             state:
                 Untrained {
