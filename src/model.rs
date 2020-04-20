@@ -235,6 +235,34 @@ impl Svm<Trained> {
         }
     }
 
+    /// Gets the label indexes.
+    pub fn support_vectors(&self) -> Vec<Vec<(usize, f64)>> {
+        let n_sv = self.nr_sv();
+        let node_heads = unsafe {
+            std::slice::from_raw_parts::<*mut libsvm_sys::svm_node>(
+                self.state.model_ptr.as_ref().SV,
+                n_sv,
+            )
+        };
+        node_heads
+            .iter()
+            .cloned()
+            .map(|mut node_ptr| {
+                std::iter::from_fn(|| unsafe {
+                    let libsvm_sys::svm_node { index, value } = *node_ptr;
+                    node_ptr = node_ptr.add(1);
+                    if index != -1 {
+                        Some((index as usize, value))
+                    } else {
+                        None
+                    }
+                })
+                .fuse()
+                .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>()
+    }
+
     /// Gets the number of support vectors.
     pub fn nr_sv(&self) -> usize {
         unsafe { libsvm_sys::svm_get_nr_sv(self.state.model_ptr.as_ptr()) as usize }
