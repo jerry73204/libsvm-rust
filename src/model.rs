@@ -235,9 +235,37 @@ impl Svm<Trained> {
         }
     }
 
+    /// Gets the number of support vectors.
+    pub fn nr_sv(&self) -> usize {
+        unsafe { libsvm_sys::svm_get_nr_sv(self.state.model_ptr.as_ptr()) as usize }
+    }
+
+    /// Gets coefficients for SVs in decision functions
+    pub fn sv_coef(&self) -> Vec<&[f64]> {
+        let n_classes = self.nr_classes();
+        let n_sv = self.nr_sv();
+        unsafe {
+            std::slice::from_raw_parts::<*mut f64>(
+                self.state.model_ptr.as_ref().sv_coef,
+                n_classes - 1,
+            )
+            .iter()
+            .cloned()
+            .map(|ptr| std::slice::from_raw_parts::<f64>(ptr, n_sv))
+            .collect::<Vec<_>>()
+        }
+    }
+
+    /// Gets constants in decision functions
+    pub fn rho(&self) -> &[f64] {
+        let n_classes = self.nr_classes();
+        let n_rhos = n_classes * (n_classes - 1) / 2;
+        unsafe { std::slice::from_raw_parts(self.state.model_ptr.as_ref().rho, n_rhos) }
+    }
+
     /// Gets the support vector indexes in training data.
     pub fn get_sv_indexes(&self) -> Vec<usize> {
-        let n_sv = unsafe { libsvm_sys::svm_get_nr_sv(self.state.model_ptr.as_ptr()) as usize };
+        let n_sv = self.nr_sv();
         let indexes = unsafe {
             let mut indexes = std::iter::repeat(0).take(n_sv).collect::<Vec<_>>();
             libsvm_sys::svm_get_sv_indices(self.state.model_ptr.as_ptr(), indexes.as_mut_ptr());
