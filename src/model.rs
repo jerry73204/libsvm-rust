@@ -342,6 +342,97 @@ impl Svm<Trained> {
 
         Ok(predictions)
     }
+
+    /// Predicts the output with decision values for given data.
+    pub fn predict_with_values<X>(&self, x: X) -> Result<Vec<(f64, Vec<f64>)>, Error>
+    where
+        X: TryInto<SvmNodes, Error = Error>,
+    {
+        let x_nodes = x.try_into()?;
+        let n_features = self.nr_classes();
+        if x_nodes.n_features > n_features {
+            return Err(Error::InvalidData {
+                reason: format!(
+                    "too many features in input data, expect {} features but get {}",
+                    n_features, x_nodes.n_features
+                ),
+            });
+        }
+
+        let predictions = {
+            x_nodes
+                .end_indexes
+                .iter()
+                .cloned()
+                .scan(0, |from, to| {
+                    let prev_from = *from;
+                    *from = to;
+                    Some((prev_from, to))
+                })
+                .map(|(from, to)| {
+                    x_nodes.nodes.get(from..to).unwrap().as_ptr() as *mut libsvm_sys::svm_node
+                })
+                .map(|node_ptr| unsafe {
+                    let n_classes = self.nr_classes();
+                    let n_dec_values = n_classes * (n_classes - 1) / 2;
+                    let mut dec_values = vec![0f64; n_dec_values];
+                    let pred = libsvm_sys::svm_predict_values(
+                        self.state.model_ptr.as_ptr(),
+                        node_ptr,
+                        dec_values.as_mut_ptr(),
+                    );
+                    (pred, dec_values)
+                })
+                .collect::<Vec<_>>()
+        };
+
+        Ok(predictions)
+    }
+
+    /// Predicts the output with decision values for given data.
+    pub fn predict_with_probability<X>(&self, x: X) -> Result<Vec<(f64, Vec<f64>)>, Error>
+    where
+        X: TryInto<SvmNodes, Error = Error>,
+    {
+        let x_nodes = x.try_into()?;
+        let n_features = self.nr_classes();
+        if x_nodes.n_features > n_features {
+            return Err(Error::InvalidData {
+                reason: format!(
+                    "too many features in input data, expect {} features but get {}",
+                    n_features, x_nodes.n_features
+                ),
+            });
+        }
+
+        let predictions = {
+            x_nodes
+                .end_indexes
+                .iter()
+                .cloned()
+                .scan(0, |from, to| {
+                    let prev_from = *from;
+                    *from = to;
+                    Some((prev_from, to))
+                })
+                .map(|(from, to)| {
+                    x_nodes.nodes.get(from..to).unwrap().as_ptr() as *mut libsvm_sys::svm_node
+                })
+                .map(|node_ptr| unsafe {
+                    let n_classes = self.nr_classes();
+                    let mut probability_estimates = vec![0f64; n_classes];
+                    let pred = libsvm_sys::svm_predict_values(
+                        self.state.model_ptr.as_ptr(),
+                        node_ptr,
+                        probability_estimates.as_mut_ptr(),
+                    );
+                    (pred, probability_estimates)
+                })
+                .collect::<Vec<_>>()
+        };
+
+        Ok(predictions)
+    }
 }
 
 impl FromStr for Svm<Trained> {
