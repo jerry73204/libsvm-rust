@@ -295,7 +295,7 @@ impl Svm<Trained> {
     pub fn get_sv_indexes(&self) -> Vec<usize> {
         let n_sv = self.nr_sv();
         let indexes = unsafe {
-            let mut indexes = std::iter::repeat(0).take(n_sv).collect::<Vec<_>>();
+            let mut indexes = vec![0; n_sv];
             libsvm_sys::svm_get_sv_indices(self.state.model_ptr.as_ptr(), indexes.as_mut_ptr());
             indexes
                 .into_iter()
