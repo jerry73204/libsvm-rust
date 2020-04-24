@@ -8,7 +8,7 @@ which is based on [Yu Wei Wu's libsvm-sys](https://crates.io/crates/libsvm-sys).
 Append this line to `[dependencies]` in `Cargo.toml`.
 
 ```
-libsvm = "^0.1.0"
+libsvm = "^0.2.0"
 ```
 
 The following extra features add support for nalgebra and ndarray types.
@@ -22,7 +22,7 @@ For example, if you would like to enable nalgebra support, add the line in your
 `Cargo.toml`.
 
 ```
-libsvm = { version = "^0.1.0", features = ["with-nalgebra"] }
+libsvm = { version = "^0.2.0", features = ["with-nalgebra"] }
 ```
 
 ## License

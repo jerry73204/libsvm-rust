@@ -1,6 +1,6 @@
-[package]
+0[package]
 name = "libsvm"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["jerry73204 <jerry73204@gmail.com>"]
 description = "High level Rust bindings for libsvm"
 edition = "2018"
