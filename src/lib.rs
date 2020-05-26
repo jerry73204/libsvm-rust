@@ -5,13 +5,13 @@
 
 use std::os::raw::c_char;
 
-#[ctor::ctor]
-fn disable_print_in_libsvm() {
-    unsafe {
-        libsvm_sys::svm_set_print_string_function(Some(noop));
-    }
-}
-unsafe extern "C" fn noop(_: *const c_char) {}
+// #[ctor::ctor]
+// fn disable_print_in_libsvm() {
+//     unsafe {
+//         libsvm_sys::svm_set_print_string_function(Some(noop));
+//     }
+// }
+// unsafe extern "C" fn noop(_: *const c_char) {}
 
 pub mod consts;
 pub mod data;

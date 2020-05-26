@@ -39,7 +39,7 @@ impl Svm<Untrained> {
         Y: AsRef<[f64]>,
     {
         // disable message from libsvm
-        crate::disable_print_in_libsvm();
+        // crate::disable_print_in_libsvm();
 
         let Svm {
             state:
@@ -91,8 +91,12 @@ impl Svm<Untrained> {
         // update raw params
         // we store pointers late to avoid move after saving pointers
         params.gamma = gamma;
-        params.weight_label = weight_labels.as_ptr() as *mut _;
-        params.weight = weights.as_ptr() as *mut _;
+        if params.nr_weight != 0 {
+            params.weight_label = weight_labels.as_ptr() as *mut _;
+            params.weight = weights.as_ptr() as *mut _;
+        }
+
+        dbg!(&params);
 
         unsafe {
             let ptr = libsvm_sys::svm_check_parameter(&problem, &params);
@@ -133,7 +137,7 @@ impl Svm<Untrained> {
         Y: AsRef<[f64]>,
     {
         // disable message from libsvm
-        crate::disable_print_in_libsvm();
+        // crate::disable_print_in_libsvm();
 
         let Svm {
             state:
