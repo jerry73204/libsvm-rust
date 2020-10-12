@@ -3,8 +3,7 @@
 use crate::{
     consts::{DEFAULT_COEF0, DEFAULT_COST, DEFAULT_DEGREE, DEFAULT_MODEL_EPSILON, DEFAULT_NU},
     error::Error,
-    model::{KernelParams, ModelParams, Svm, SvmParams},
-    state::Untrained,
+    model::{KernelParams, ModelParams, SvmParams, SvmTrainer},
 };
 use std::{
     collections::HashMap,
@@ -68,7 +67,7 @@ impl Default for SvmInit {
 
 impl SvmInit {
     /// Builds SVM model from the initializer.
-    pub fn build(&self) -> Result<Svm<Untrained>, Error> {
+    pub fn build(&self) -> Result<SvmTrainer, Error> {
         let SvmParams {
             model,
             kernel,
@@ -162,13 +161,11 @@ impl SvmInit {
             weight: std::ptr::null_mut(),
         };
 
-        let svm = Svm {
-            state: Untrained {
-                gamma_opt,
-                params,
-                weight_labels,
-                weights,
-            },
+        let svm = SvmTrainer {
+            gamma_opt,
+            params,
+            weight_labels,
+            weights,
         };
 
         Ok(svm)

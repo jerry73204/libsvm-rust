@@ -8,7 +8,6 @@ use crate::{
     data::SvmNodes,
     error::Error,
     init::{KernelInit, ModelInit, SvmInit},
-    state::{Trained, Untrained},
 };
 use num_derive::FromPrimitive;
 use std::{
@@ -23,17 +22,20 @@ use std::{
 
 /// The SVM model.
 #[derive(Debug)]
-pub struct Svm<State> {
-    pub(crate) state: State,
+pub struct SvmTrainer {
+    pub(crate) gamma_opt: Option<f64>,
+    pub(crate) params: libsvm_sys::svm_parameter,
+    pub(crate) weight_labels: Vec<i32>,
+    pub(crate) weights: Vec<f64>,
 }
 
-impl Svm<Untrained> {
+impl SvmTrainer {
     pub fn kind(&self) -> SvmKind {
-        num::FromPrimitive::from_usize(self.state.params.svm_type as usize).unwrap()
+        num::FromPrimitive::from_usize(self.params.svm_type as usize).unwrap()
     }
 
     /// Trains the model on given dataset.
-    pub fn fit<X, Y>(&self, x: X, y: Y) -> Result<Svm<Trained>, Error>
+    pub fn fit<X, Y>(&self, x: X, y: Y) -> Result<SvmPredictor, Error>
     where
         X: TryInto<SvmNodes, Error = Error>,
         Y: AsRef<[f64]>,
@@ -41,14 +43,11 @@ impl Svm<Untrained> {
         // disable message from libsvm
         crate::disable_print_in_libsvm();
 
-        let Svm {
-            state:
-                Untrained {
-                    gamma_opt,
-                    mut params,
-                    weight_labels,
-                    weights,
-                },
+        let SvmTrainer {
+            gamma_opt,
+            mut params,
+            weight_labels,
+            weights,
         } = self;
 
         // transoform x
@@ -118,11 +117,9 @@ impl Svm<Untrained> {
             })?
         };
 
-        Ok(Svm {
-            state: Trained {
-                model_ptr,
-                nodes_opt: Some(x_nodes),
-            },
+        Ok(SvmPredictor {
+            model_ptr,
+            nodes_opt: Some(x_nodes),
         })
     }
 
@@ -135,14 +132,11 @@ impl Svm<Untrained> {
         // disable message from libsvm
         crate::disable_print_in_libsvm();
 
-        let Svm {
-            state:
-                Untrained {
-                    gamma_opt,
-                    mut params,
-                    weight_labels,
-                    weights,
-                },
+        let SvmTrainer {
+            gamma_opt,
+            mut params,
+            weight_labels,
+            weights,
         } = self;
 
         // transoform x
@@ -207,18 +201,26 @@ impl Svm<Untrained> {
     }
 }
 
-impl Svm<Trained> {
+/// The SVM model.
+#[derive(Debug)]
+pub struct SvmPredictor {
+    pub(crate) model_ptr: NonNull<libsvm_sys::svm_model>,
+    // libsvm_sys::svm_model refers to this struct internally
+    pub(crate) nodes_opt: Option<SvmNodes>,
+}
+
+impl SvmPredictor {
     /// Gets the type of the model.
     pub fn kind(&self) -> SvmKind {
         num::FromPrimitive::from_usize(unsafe {
-            libsvm_sys::svm_get_svm_type(self.state.model_ptr.as_ptr()) as usize
+            libsvm_sys::svm_get_svm_type(self.model_ptr.as_ptr()) as usize
         })
         .unwrap()
     }
 
     /// Gets the number of output classes.
     pub fn nr_classes(&self) -> usize {
-        unsafe { libsvm_sys::svm_get_nr_class(self.state.model_ptr.as_ptr()) as usize }
+        unsafe { libsvm_sys::svm_get_nr_class(self.model_ptr.as_ptr()) as usize }
     }
 
     /// Gets the label indexes.
@@ -227,7 +229,7 @@ impl Svm<Trained> {
             let mut labels = std::iter::repeat(0)
                 .take(self.nr_classes())
                 .collect::<Vec<_>>();
-            libsvm_sys::svm_get_labels(self.state.model_ptr.as_ptr(), labels.as_mut_ptr());
+            libsvm_sys::svm_get_labels(self.model_ptr.as_ptr(), labels.as_mut_ptr());
             labels
                 .into_iter()
                 .map(|label| label as isize)
@@ -240,7 +242,7 @@ impl Svm<Trained> {
         let n_sv = self.nr_sv();
         let node_heads = unsafe {
             std::slice::from_raw_parts::<*mut libsvm_sys::svm_node>(
-                self.state.model_ptr.as_ref().SV,
+                self.model_ptr.as_ref().SV,
                 n_sv,
             )
         };
@@ -265,7 +267,7 @@ impl Svm<Trained> {
 
     /// Gets the number of support vectors.
     pub fn nr_sv(&self) -> usize {
-        unsafe { libsvm_sys::svm_get_nr_sv(self.state.model_ptr.as_ptr()) as usize }
+        unsafe { libsvm_sys::svm_get_nr_sv(self.model_ptr.as_ptr()) as usize }
     }
 
     /// Gets coefficients for SVs in decision functions
@@ -273,14 +275,11 @@ impl Svm<Trained> {
         let n_classes = self.nr_classes();
         let n_sv = self.nr_sv();
         unsafe {
-            std::slice::from_raw_parts::<*mut f64>(
-                self.state.model_ptr.as_ref().sv_coef,
-                n_classes - 1,
-            )
-            .iter()
-            .cloned()
-            .map(|ptr| std::slice::from_raw_parts::<f64>(ptr, n_sv))
-            .collect::<Vec<_>>()
+            std::slice::from_raw_parts::<*mut f64>(self.model_ptr.as_ref().sv_coef, n_classes - 1)
+                .iter()
+                .cloned()
+                .map(|ptr| std::slice::from_raw_parts::<f64>(ptr, n_sv))
+                .collect::<Vec<_>>()
         }
     }
 
@@ -288,7 +287,7 @@ impl Svm<Trained> {
     pub fn rho(&self) -> &[f64] {
         let n_classes = self.nr_classes();
         let n_rhos = n_classes * (n_classes - 1) / 2;
-        unsafe { std::slice::from_raw_parts(self.state.model_ptr.as_ref().rho, n_rhos) }
+        unsafe { std::slice::from_raw_parts(self.model_ptr.as_ref().rho, n_rhos) }
     }
 
     /// Gets the support vector indexes in training data.
@@ -296,7 +295,7 @@ impl Svm<Trained> {
         let n_sv = self.nr_sv();
         let indexes = unsafe {
             let mut indexes = vec![0; n_sv];
-            libsvm_sys::svm_get_sv_indices(self.state.model_ptr.as_ptr(), indexes.as_mut_ptr());
+            libsvm_sys::svm_get_sv_indices(self.model_ptr.as_ptr(), indexes.as_mut_ptr());
             indexes
                 .into_iter()
                 .map(|index| index as usize)
@@ -335,7 +334,7 @@ impl Svm<Trained> {
                     x_nodes.nodes.get(from..to).unwrap().as_ptr() as *mut libsvm_sys::svm_node
                 })
                 .map(|node_ptr| unsafe {
-                    libsvm_sys::svm_predict(self.state.model_ptr.as_ptr(), node_ptr)
+                    libsvm_sys::svm_predict(self.model_ptr.as_ptr(), node_ptr)
                 })
                 .collect::<Vec<_>>()
         };
@@ -377,7 +376,7 @@ impl Svm<Trained> {
                     let n_dec_values = n_classes * (n_classes - 1) / 2;
                     let mut dec_values = vec![0f64; n_dec_values];
                     let pred = libsvm_sys::svm_predict_values(
-                        self.state.model_ptr.as_ptr(),
+                        self.model_ptr.as_ptr(),
                         node_ptr,
                         dec_values.as_mut_ptr(),
                     );
@@ -422,7 +421,7 @@ impl Svm<Trained> {
                     let n_classes = self.nr_classes();
                     let mut probability_estimates = vec![0f64; n_classes];
                     let pred = libsvm_sys::svm_predict_values(
-                        self.state.model_ptr.as_ptr(),
+                        self.model_ptr.as_ptr(),
                         node_ptr,
                         probability_estimates.as_mut_ptr(),
                     );
@@ -435,7 +434,7 @@ impl Svm<Trained> {
     }
 }
 
-impl FromStr for Svm<Trained> {
+impl FromStr for SvmPredictor {
     type Err = Error;
 
     fn from_str(desc: &str) -> Result<Self, Self::Err> {
@@ -449,12 +448,25 @@ impl FromStr for Svm<Trained> {
             })?
         };
 
-        Ok(Svm {
-            state: Trained {
-                model_ptr,
-                nodes_opt: None,
-            },
+        Ok(SvmPredictor {
+            model_ptr,
+            nodes_opt: None,
         })
+    }
+}
+
+impl Drop for SvmPredictor {
+    fn drop(&mut self) {
+        unsafe {
+            if self.model_ptr.as_ref().free_sv != 0 {
+                let mut model_ptr_ptr: *mut libsvm_sys::svm_model = self.model_ptr.as_mut();
+                libsvm_sys::svm_free_and_destroy_model(
+                    &mut model_ptr_ptr as *mut *mut libsvm_sys::svm_model,
+                );
+            } else {
+                libsvm_sys::svm_free_model_content(self.model_ptr.as_ptr());
+            }
+        }
     }
 }
 
