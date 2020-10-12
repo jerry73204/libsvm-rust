@@ -1,4 +1,4 @@
-//! Constants and defaults parameters.
+//! Constants and default parameters.
 
 pub const DEFAULT_COST: f64 = 1.0;
 pub const DEFAULT_DEGREE: usize = 3;

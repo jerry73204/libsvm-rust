@@ -1,4 +1,4 @@
-//! Data types used internally by libsvm.
+//! Data types and type conversion implementations.
 
 use crate::error::Error;
 use std::{

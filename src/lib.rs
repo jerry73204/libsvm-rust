@@ -1,4 +1,4 @@
-//! High-level and rusty bindings for libsvm.
+//! High-level bindings for libsvm.
 
 #![cfg_attr(feature = "nightly", feature(min_const_generics))]
 #![cfg_attr(feature = "nightly", feature(array_methods))]

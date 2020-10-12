@@ -20,7 +20,7 @@ use std::{
     ptr::NonNull,
 };
 
-/// The SVM model.
+/// The trainer type that builds SVM predictors.
 #[derive(Debug)]
 pub struct SvmTrainer {
     pub(crate) gamma_opt: Option<f64>,
@@ -201,7 +201,7 @@ impl SvmTrainer {
     }
 }
 
-/// The SVM model.
+/// The SVM predictor.
 #[derive(Debug)]
 pub struct SvmPredictor {
     pub(crate) model_ptr: NonNull<libsvm_sys::svm_model>,
