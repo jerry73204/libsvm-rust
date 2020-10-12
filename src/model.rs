@@ -16,8 +16,8 @@ use std::{
     ffi::{CStr, CString},
     num::NonZeroUsize,
     os::raw::c_int,
+    path::Path,
     ptr::NonNull,
-    str::FromStr,
 };
 
 /// The SVM model.
@@ -210,6 +210,68 @@ pub struct SvmPredictor {
 }
 
 impl SvmPredictor {
+    /// Loads model parameters from a file.
+    pub fn load<P>(path: P) -> Result<Self, Error>
+    where
+        P: AsRef<Path>,
+    {
+        let path = path.as_ref();
+        let model_ptr = unsafe {
+            let cstring = CString::new(
+                path.to_str()
+                    .ok_or_else(|| Error::UnsupportedPath {
+                        path: path.to_owned(),
+                    })?
+                    .bytes()
+                    .chain(vec![0])
+                    .collect::<Vec<_>>(),
+            )
+            .unwrap();
+            let raw = cstring.into_raw();
+            let model_ptr = libsvm_sys::svm_load_model(raw);
+            let _ = CString::from_raw(raw); // deallocate the C string
+            NonNull::new(model_ptr).ok_or_else(|| Error::InternalError {
+                reason: "svm_load_model() returns null pointer".into(),
+            })?
+        };
+
+        Ok(SvmPredictor {
+            model_ptr,
+            nodes_opt: None,
+        })
+    }
+
+    /// Saves model parameters to a file.
+    pub fn save<P>(&self, path: P) -> Result<(), Error>
+    where
+        P: AsRef<Path>,
+    {
+        let path = path.as_ref();
+        let ret = unsafe {
+            let cstring = CString::new(
+                path.to_str()
+                    .ok_or_else(|| Error::UnsupportedPath {
+                        path: path.to_owned(),
+                    })?
+                    .bytes()
+                    .chain(vec![0])
+                    .collect::<Vec<_>>(),
+            )
+            .unwrap();
+            let raw = cstring.into_raw();
+            let ret = libsvm_sys::svm_save_model(raw, self.model_ptr.as_ptr());
+            let _ = CString::from_raw(raw); // deallocate the C string
+            ret
+        };
+
+        match ret {
+            0 => Ok(()),
+            _ => Err(Error::InternalError {
+                reason: "svm_save_model() failed".into(),
+            }),
+        }
+    }
+
     /// Gets the type of the model.
     pub fn kind(&self) -> SvmKind {
         num::FromPrimitive::from_usize(unsafe {
@@ -431,27 +493,6 @@ impl SvmPredictor {
         };
 
         Ok(predictions)
-    }
-}
-
-impl FromStr for SvmPredictor {
-    type Err = Error;
-
-    fn from_str(desc: &str) -> Result<Self, Self::Err> {
-        let model_ptr = unsafe {
-            let cstring = CString::new(desc.bytes().chain(vec![0]).collect::<Vec<_>>()).unwrap();
-            let raw = cstring.into_raw();
-            let model_ptr = libsvm_sys::svm_load_model(raw);
-            CString::from_raw(raw);
-            NonNull::new(model_ptr).ok_or_else(|| Error::InternalError {
-                reason: "svm_load_model() returns null pointer".into(),
-            })?
-        };
-
-        Ok(SvmPredictor {
-            model_ptr,
-            nodes_opt: None,
-        })
     }
 }
 
