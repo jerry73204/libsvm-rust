@@ -7,7 +7,7 @@ which is based on [Yu Wei Wu's libsvm-sys](https://crates.io/crates/libsvm-sys).
 
 Add this crate your `Cargo.toml`.
 
-```
+```toml
 [dependencies]
 libsvm = "0.3"
 ```
@@ -21,7 +21,7 @@ libsvm = "0.3"
 
 For example, if you would like to enable nalgebra support, add the feature in your `Cargo.toml`.
 
-```
+```toml
 libsvm = { version = "0.3", features = ["with-nalgebra"] }
 ```
 
