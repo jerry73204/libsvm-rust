@@ -5,24 +5,24 @@ which is based on [Yu Wei Wu's libsvm-sys](https://crates.io/crates/libsvm-sys).
 
 ## Usage
 
-Append this line to `[dependencies]` in `Cargo.toml`.
+Add this crate your `Cargo.toml`.
 
 ```
-libsvm = "^0.2.0"
+[dependencies]
+libsvm = "0.3"
 ```
 
-The following extra features add support for nalgebra and ndarray types.
-The methods in this crate will accept matrix or multi-dimensional array types,
-and convert them internally.
+## Cargo Features
 
-- **with-nalgebra**: Add nalgebra support
-- **with-ndarray**: Add ndarray support
+- **full**: Enable most available cargo features except **nightly**.
+- **nalgebra**: Enable conversions from nalgebra types
+- **ndarray**: Enable conversions from ndarray types
+- **nightly**: Enable nightly features, especially for conversions from array of arbitrary size.
 
-For example, if you would like to enable nalgebra support, add the line in your
-`Cargo.toml`.
+For example, if you would like to enable nalgebra support, add the feature in your `Cargo.toml`.
 
 ```
-libsvm = { version = "^0.2.0", features = ["with-nalgebra"] }
+libsvm = { version = "0.3", features = ["with-nalgebra"] }
 ```
 
 ## License
