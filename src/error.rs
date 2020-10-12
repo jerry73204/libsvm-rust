@@ -1,14 +1,12 @@
 //! Error types.
 
-use failure::Fail;
-
 /// The error type used across this crate.
-#[derive(Debug, Fail)]
+#[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[fail(display = "invalid hyperparameter: {}", reason)]
+    #[error("invalid hyperparameter: {reason}")]
     InvalidHyperparameter { reason: String },
-    #[fail(display = "invalid data: {}", reason)]
+    #[error("invalid data: {reason}")]
     InvalidData { reason: String },
-    #[fail(display = "invalid error: {}", reason)]
+    #[error("invalid error: {reason}")]
     InternalError { reason: String },
 }
