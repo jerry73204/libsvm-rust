@@ -1,8 +1,7 @@
-//! Data types unsed internally by libsvm.
+//! Data types used internally by libsvm.
 
 use crate::error::Error;
 use std::{
-    array::FixedSizeArray,
     convert::{TryFrom, TryInto},
     os::raw::c_int,
 };
@@ -113,6 +112,7 @@ impl TryFrom<&[&Vec<f64>]> for SvmNodes {
     }
 }
 
+#[cfg(feature = "nightly")]
 impl<const N_FEATURES: usize> TryFrom<&[&[f64; N_FEATURES]]> for SvmNodes {
     type Error = Error;
 
@@ -125,6 +125,7 @@ impl<const N_FEATURES: usize> TryFrom<&[&[f64; N_FEATURES]]> for SvmNodes {
     }
 }
 
+#[cfg(feature = "nightly")]
 impl<const N_FEATURES: usize> TryFrom<&[[f64; N_FEATURES]]> for SvmNodes {
     type Error = Error;
 
@@ -137,7 +138,7 @@ impl<const N_FEATURES: usize> TryFrom<&[[f64; N_FEATURES]]> for SvmNodes {
     }
 }
 
-#[cfg(feature = "with-ndarray")]
+#[cfg(feature = "ndarray")]
 mod try_from_ndarray {
     use super::*;
     use ndarray::{ArrayBase, Axis, Data, Ix1, Ix2};
@@ -234,7 +235,7 @@ mod try_from_ndarray {
     }
 }
 
-#[cfg(feature = "with-nalgebra")]
+#[cfg(feature = "nalgebra")]
 mod try_from_nalgebra {
     use super::*;
     use nalgebra::{storage::Storage, Dim, Matrix};
@@ -293,14 +294,6 @@ mod try_from_nalgebra {
     }
 }
 
-#[cfg(feature = "with-nalgebra")]
-mod try_from_sprs {
-    use super::*;
-    use sprs::{CsMatBase, CsVecBase};
-
-    // TODO
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -312,6 +305,7 @@ mod tests {
             SvmNodes::try_from(data.as_slice())?;
         }
 
+        #[cfg(feature = "nightly")]
         {
             let data = [[1.0, 0.0], [0.0, 1.0], [0.0, 0.0]];
             SvmNodes::try_from(data.as_slice())?;
