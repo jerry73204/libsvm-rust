@@ -13,4 +13,6 @@ pub enum Error {
     InvalidData { reason: String },
     #[error("invalid error: {reason}")]
     InternalError { reason: String },
+    #[error("invalid line: {reason}")]
+    InvalidLine { reason: String },
 }

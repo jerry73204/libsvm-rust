@@ -112,6 +112,73 @@ impl TryFrom<&[&Vec<f64>]> for SvmNodes {
     }
 }
 
+impl TryFrom<&str> for SvmNodes {
+    type Error = Error;
+    /// the param format is  `index1:value1 index2:value2 ...`
+    /// or
+    /// ```ignore
+    /// index1:value1 index2:value2 ... \n
+    /// index1:value1 index2:value2 ... \n
+    /// ...
+    /// ```
+    /// and the index starts 0
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        let mut max_features = 0;
+        let mut nodes_final = vec![];
+        let mut end_indexes_final = vec![];
+        let lines = value.split("\n").collect::<Vec<&str>>();
+        for line in lines {
+            // the line format is `index1:value1 index2:value2 ...`
+            let line_split: Vec<&str> = line.split(" ").collect();
+            let mut nodes_tmp = vec![];
+            for index_value in line_split {
+                let index_value: Vec<&str> = index_value.split(":").collect();
+                if index_value.len() != 2 {
+                    return Err(Error::InvalidLine {
+                        reason: format!(
+                            "expected format `index1:value1 index2:value2 ...`,\
+                but this line is {}",
+                            value
+                        ),
+                    });
+                }
+                let index = index_value[0].parse::<usize>();
+                if index.is_err() {
+                    return Err(Error::InvalidLine {
+                        reason: format!("index must be number and >= 0"),
+                    });
+                }
+                let value = index_value[1].parse::<f64>();
+                if value.is_err() {
+                    return Err(Error::InvalidLine {
+                        reason: format!("value must be number"),
+                    });
+                }
+                nodes_tmp.push(libsvm_sys::svm_node {
+                    index: index.unwrap() as c_int,
+                    value: value.unwrap(),
+                });
+            }
+            // index start 0, so the num of feature need +1
+            let n_features = nodes_tmp.last().unwrap().index as usize + 1;
+            nodes_tmp.push(libsvm_sys::svm_node {
+                index: -1,
+                value: 0.0,
+            });
+
+            max_features = std::cmp::max(max_features, n_features);
+            //current end index = last nodes length + current nodes length
+            end_indexes_final.push(nodes_final.len() + nodes_tmp.len());
+            nodes_final.extend(nodes_tmp);
+        }
+        Ok(SvmNodes {
+            n_features: max_features,
+            nodes: nodes_final,
+            end_indexes: end_indexes_final,
+        })
+    }
+}
+
 #[cfg(feature = "nightly")]
 impl<const N_FEATURES: usize> TryFrom<&[&[f64; N_FEATURES]]> for SvmNodes {
     type Error = Error;
@@ -311,6 +378,45 @@ mod tests {
             SvmNodes::try_from(data.as_slice())?;
         }
 
+        Ok(())
+    }
+
+    #[test]
+    fn str_to_svm_nodes() -> Result<(), Error> {
+        let data = format!("{}\n{}\n{}", "0:1 1:0", "0:0 1:1", "0:0 1:0");
+        let nodes = SvmNodes::try_from(data.as_str())?;
+        assert_eq!(format!("{:?}", nodes),
+                   "SvmNodes { n_features: 2, nodes: [svm_node { index: 0, value: 1.0 }, svm_node { index: 1, value: 0.0 }, svm_node { index: -1, value: 0.0 }, svm_node { index: 0, value: 0.0 }, svm_node { index: 1, value: 1.0 }, svm_node { index: -1, value: 0.0 }, svm_node { index: 0, value: 0.0 }, svm_node { index: 1, value: 0.0 }, svm_node { index: -1, value: 0.0 }], end_indexes: [3, 6, 9] }"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn str_to_svm_nodes_error() -> Result<(), Error> {
+        let data = format!("{}", "-0 0:1");
+        let nodes = SvmNodes::try_from(data.as_str());
+        assert_eq!(format!("{:?}", nodes), "Err(InvalidLine { reason: \"expected format `index1:value1 index2:value2 ...`,but this line is -0 0:1\" })");
+
+        let data = format!("{}", "-1:0 0:1");
+        let nodes = SvmNodes::try_from(data.as_str());
+        assert_eq!(
+            format!("{:?}", nodes),
+            "Err(InvalidLine { reason: \"index must be number and >= 0\" })"
+        );
+
+        let data = format!("{}", "0:0 a:1");
+        let nodes = SvmNodes::try_from(data.as_str());
+        assert_eq!(
+            format!("{:?}", nodes),
+            "Err(InvalidLine { reason: \"index must be number and >= 0\" })"
+        );
+
+        let data = format!("{}", "0:he 0:1");
+        let nodes = SvmNodes::try_from(data.as_str());
+        assert_eq!(
+            format!("{:?}", nodes),
+            "Err(InvalidLine { reason: \"value must be number\" })"
+        );
         Ok(())
     }
 }
