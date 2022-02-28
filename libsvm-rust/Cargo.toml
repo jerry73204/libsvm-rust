@@ -19,3 +19,6 @@ num-traits = "0.2"
 ctor = "0.1"
 
 [features]
+default = ["link"]
+link = ["libsvm-sys/link"]
+codegen = ["libsvm-sys/codegen"]
