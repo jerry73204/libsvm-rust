@@ -17,8 +17,5 @@ num = "0.2"
 num-derive = "0.3"
 num-traits = "0.2"
 ctor = "0.1"
-nalgebra = { version = "0.22", optional = true }
-ndarray = { version = "0.13", optional = true }
 
 [features]
-full = ["nalgebra", "ndarray"]
