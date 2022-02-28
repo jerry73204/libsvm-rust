@@ -112,7 +112,6 @@ impl TryFrom<&[&Vec<f64>]> for SvmNodes {
     }
 }
 
-#[cfg(feature = "nightly")]
 impl<const N_FEATURES: usize> TryFrom<&[&[f64; N_FEATURES]]> for SvmNodes {
     type Error = Error;
 
@@ -125,7 +124,6 @@ impl<const N_FEATURES: usize> TryFrom<&[&[f64; N_FEATURES]]> for SvmNodes {
     }
 }
 
-#[cfg(feature = "nightly")]
 impl<const N_FEATURES: usize> TryFrom<&[[f64; N_FEATURES]]> for SvmNodes {
     type Error = Error;
 
@@ -305,7 +303,6 @@ mod tests {
             SvmNodes::try_from(data.as_slice())?;
         }
 
-        #[cfg(feature = "nightly")]
         {
             let data = [[1.0, 0.0], [0.0, 1.0], [0.0, 0.0]];
             SvmNodes::try_from(data.as_slice())?;
