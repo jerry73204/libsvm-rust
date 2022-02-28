@@ -2,4 +2,5 @@
 members = [
     "libsvm-rust",
     "libsvm-sys2",
+    "libsvm-convert",
 ]
