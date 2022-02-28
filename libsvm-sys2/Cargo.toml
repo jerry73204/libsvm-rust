@@ -20,3 +20,7 @@ bindgen = { version = "0.59.2", optional = true }
 default = ["link"]
 codegen = ["bindgen"]
 link = []
+
+
+[package.metadata.docs.rs]
+no-default-features = true

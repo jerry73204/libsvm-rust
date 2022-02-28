@@ -22,3 +22,6 @@ ctor = "0.1"
 default = ["link"]
 link = ["libsvm-sys/link"]
 codegen = ["libsvm-sys/codegen"]
+
+[package.metadata.docs.rs]
+no-default-features = true
