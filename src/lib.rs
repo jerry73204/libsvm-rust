@@ -1,8 +1,5 @@
 //! High-level bindings for libsvm.
 
-#![cfg_attr(feature = "nightly", feature(min_const_generics))]
-#![cfg_attr(feature = "nightly", feature(array_methods))]
-
 use std::os::raw::c_char;
 
 #[ctor::ctor]
