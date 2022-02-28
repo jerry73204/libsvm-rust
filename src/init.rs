@@ -40,7 +40,7 @@ pub enum KernelInit {
 }
 
 /// The SVM model initializer.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct SvmInit {
     pub model: Option<ModelInit>,
     pub kernel: Option<KernelInit>,
@@ -49,20 +49,6 @@ pub struct SvmInit {
     pub shrinking: Option<bool>,
     pub termination_eps: Option<f64>,
     pub label_weights: Option<HashMap<isize, f64>>,
-}
-
-impl Default for SvmInit {
-    fn default() -> Self {
-        Self {
-            model: None,
-            kernel: None,
-            cache_size: None,
-            probability_estimates: None,
-            shrinking: None,
-            termination_eps: None,
-            label_weights: None,
-        }
-    }
 }
 
 impl SvmInit {
@@ -124,7 +110,7 @@ impl SvmInit {
             let (labels, weights) = label_weights.into_iter().fold(Ok((vec![], vec![])), |result, (index, weight)| {
                 let (mut labels, mut weights) = result?;
 
-                if weight < 0.0 || weight > 1.0 {
+                if !(0.0..=1.0).contains(&weight) {
                     return Err(Error::InvalidHyperparameter {
                         reason: format!("the label weights in label_weights must be in range of [0, 1], but found {}", weight)
                     });

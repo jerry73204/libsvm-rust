@@ -96,7 +96,7 @@ impl SvmTrainer {
         unsafe {
             let ptr = libsvm_sys::svm_check_parameter(&problem, &params);
 
-            if ptr != std::ptr::null() {
+            if !ptr.is_null() {
                 let err_msg = CStr::from_ptr(ptr)
                     .to_str()
                     .map_err(|err| Error::InternalError {
@@ -119,7 +119,7 @@ impl SvmTrainer {
 
         Ok(SvmPredictor {
             model_ptr,
-            nodes_opt: Some(x_nodes),
+            // nodes_opt: Some(x_nodes),
         })
     }
 
@@ -206,7 +206,7 @@ impl SvmTrainer {
 pub struct SvmPredictor {
     pub(crate) model_ptr: NonNull<libsvm_sys::svm_model>,
     // libsvm_sys::svm_model refers to this struct internally
-    pub(crate) nodes_opt: Option<SvmNodes>,
+    // pub(crate) nodes_opt: Option<SvmNodes>,
 }
 
 impl SvmPredictor {
@@ -237,7 +237,7 @@ impl SvmPredictor {
 
         Ok(SvmPredictor {
             model_ptr,
-            nodes_opt: None,
+            // nodes_opt: None,
         })
     }
 
@@ -355,15 +355,15 @@ impl SvmPredictor {
     /// Gets the support vector indexes in training data.
     pub fn get_sv_indexes(&self) -> Vec<usize> {
         let n_sv = self.nr_sv();
-        let indexes = unsafe {
+
+        unsafe {
             let mut indexes = vec![0; n_sv];
             libsvm_sys::svm_get_sv_indices(self.model_ptr.as_ptr(), indexes.as_mut_ptr());
             indexes
                 .into_iter()
                 .map(|index| index as usize)
                 .collect::<Vec<_>>()
-        };
-        indexes
+        }
     }
 
     /// Predicts the output for given data.
@@ -547,19 +547,16 @@ impl TryFrom<&SvmInit> for SvmParams {
         } = init;
 
         let svm = Self {
-            model: model.as_ref().map(From::from).unwrap_or(Default::default()),
-            kernel: kernel
-                .as_ref()
-                .map(From::from)
-                .unwrap_or(Default::default()),
+            model: model.as_ref().map(From::from).unwrap_or_default(),
+            kernel: kernel.as_ref().map(From::from).unwrap_or_default(),
             cache_size: cache_size.unwrap_or(DEFAULT_CACHE_SIZE),
             probability_estimates: probability_estimates.unwrap_or(DEFAULT_PROBABILITY_ESTIMATES),
             shrinking: shrinking.unwrap_or(DEFAULT_SHRINKING),
             termination_eps: termination_eps.unwrap_or(DEFAULT_TERMINATION_EPSILON),
-            label_weights: label_weights.clone().unwrap_or(HashMap::new()),
+            label_weights: label_weights.clone().unwrap_or_default(),
         };
 
-        if svm.cache_size <= 0 {
+        if svm.cache_size == 0 {
             return Err(Error::InvalidHyperparameter {
                 reason: "cache_size must be positive".into(),
             });

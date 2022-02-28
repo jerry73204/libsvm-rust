@@ -52,7 +52,7 @@ impl TryFrom<&[&[f64]]> for SvmNodes {
         let n_features = from
             .get(0)
             .ok_or_else(|| Error::InvalidData {
-                reason: format!("data without features is not allowed"),
+                reason: "data without features is not allowed".into(),
             })?
             .len();
 
@@ -61,7 +61,7 @@ impl TryFrom<&[&[f64]]> for SvmNodes {
 
             if row.len() != n_features {
                 return Err(Error::InvalidData {
-                    reason: format!("the number of features must be consistent"),
+                    reason: "the number of features must be consistent".into(),
                 });
             }
 
