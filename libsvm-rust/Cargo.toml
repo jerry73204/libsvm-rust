@@ -1,0 +1,24 @@
+[package]
+name = "libsvm"
+version = "0.3.0"
+authors = ["jerry73204 <jerry73204@gmail.com>"]
+description = "High level Rust bindings for libsvm"
+edition = "2021"
+license-file = "LICENSE"
+repository = "https://github.com/jerry73204/libsvm-rust"
+documentation = "https://docs.rs/libsvm/"
+readme = "README.md"
+categories = ["api-bindings", "science"]
+
+[dependencies]
+libsvm-sys = "3.24"
+thiserror = "1.0"
+num = "0.2"
+num-derive = "0.3"
+num-traits = "0.2"
+ctor = "0.1"
+nalgebra = { version = "0.22", optional = true }
+ndarray = { version = "0.13", optional = true }
+
+[features]
+full = ["nalgebra", "ndarray"]
