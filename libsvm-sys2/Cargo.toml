@@ -1,0 +1,22 @@
+[package]
+name = "libsvm-sys2"
+version = "4.0.0"
+authors = [
+    "Yu-Wei Wu <wusyong9104@gmail.com>",
+    "jerry73204 <jerry73204@gmail.com>",
+]
+edition = "2021"
+license = "BSD-3-Clause"
+description = "FFI bindings to libsvm"
+repository = "https://github.com/wusyong/svm.rs"
+
+[build-dependencies]
+anyhow = "1.0.55"
+once_cell = "1.9.0"
+cfg-if = "1.0.0"
+bindgen = { version = "0.59.2", optional = true }
+
+[features]
+default = ["link"]
+codegen = ["bindgen"]
+link = []
