@@ -482,7 +482,7 @@ impl SvmPredictor {
                 .map(|node_ptr| unsafe {
                     let n_classes = self.nr_classes();
                     let mut probability_estimates = vec![0f64; n_classes];
-                    let pred = libsvm_sys::svm_predict_values(
+                    let pred = libsvm_sys::svm_predict_probability(
                         self.model_ptr.as_ptr(),
                         node_ptr,
                         probability_estimates.as_mut_ptr(),
