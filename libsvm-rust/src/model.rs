@@ -117,6 +117,10 @@ impl SvmTrainer {
             })?
         };
 
+        // let libsvm deal with cleaning up.
+        std::mem::forget(x_nodes);
+        std::mem::forget(x_slice);
+
         Ok(SvmPredictor {
             model_ptr,
             // nodes_opt: Some(x_nodes),
