@@ -223,7 +223,6 @@ impl SvmPredictor {
                         path: path.to_owned(),
                     })?
                     .bytes()
-                    .chain(vec![0])
                     .collect::<Vec<_>>(),
             )
             .unwrap();
@@ -254,7 +253,6 @@ impl SvmPredictor {
                         path: path.to_owned(),
                     })?
                     .bytes()
-                    .chain(vec![0])
                     .collect::<Vec<_>>(),
             )
             .unwrap();
