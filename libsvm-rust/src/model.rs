@@ -117,6 +117,10 @@ impl SvmTrainer {
             })?
         };
 
+        // let libsvm deal with cleaning up.
+        std::mem::forget(x_nodes);
+        std::mem::forget(x_slice);
+
         Ok(SvmPredictor {
             model_ptr,
             // nodes_opt: Some(x_nodes),
@@ -223,7 +227,6 @@ impl SvmPredictor {
                         path: path.to_owned(),
                     })?
                     .bytes()
-                    .chain(vec![0])
                     .collect::<Vec<_>>(),
             )
             .unwrap();
@@ -254,7 +257,6 @@ impl SvmPredictor {
                         path: path.to_owned(),
                     })?
                     .bytes()
-                    .chain(vec![0])
                     .collect::<Vec<_>>(),
             )
             .unwrap();
@@ -482,7 +484,7 @@ impl SvmPredictor {
                 .map(|node_ptr| unsafe {
                     let n_classes = self.nr_classes();
                     let mut probability_estimates = vec![0f64; n_classes];
-                    let pred = libsvm_sys::svm_predict_values(
+                    let pred = libsvm_sys::svm_predict_probability(
                         self.model_ptr.as_ptr(),
                         node_ptr,
                         probability_estimates.as_mut_ptr(),
